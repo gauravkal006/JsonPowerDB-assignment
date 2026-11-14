@@ -1,0 +1,23 @@
+
+# Environment variables
+.env
+.env.local
+.env.*
+
+# Local token/config overrides
+js/config.local.js
+
+# Dependencies
+node_modules/
+
+# Editor settings
+.vscode/
+.idea/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db

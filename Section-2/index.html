@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Employee Registration - JsonPowerDB</title>
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+
+    <!-- jQuery -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+    <!-- Original JsonPowerDB Common Library -->
+    <script src="https://login2explore.com/jpdb/resources/js/0.0.3/jpdb-commons.js"></script>
+
+    <style>
+        body {
+            background-color: #f4f6f9;
+            padding-top: 50px;
+            font-family: Arial, sans-serif;
+        }
+
+        .form-container {
+            max-width: 600px;
+            margin: auto;
+            padding: 35px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.12);
+        }
+
+        h2 {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .btn {
+            margin-right: 10px;
+        }
+
+        #message {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+
+</head>
+
+<body>
+
+    <div class="container">
+
+        <div class="form-container">
+
+            <h2>Employee Registration Form</h2>
+
+            <form id="employeeForm">
+
+                <div class="form-group">
+
+                    <label for="empId">
+                        Employee ID:
+                    </label>
+
+                    <input type="text" class="form-control" id="empId" placeholder="Enter Employee ID" required>
+
+                </div>
+
+                <div class="form-group">
+
+                    <label for="empName">
+                        Employee Name:
+                    </label>
+
+                    <input type="text" class="form-control" id="empName" placeholder="Enter Employee Name" required>
+
+                </div>
+
+                <div class="form-group">
+
+                    <label for="empEmail">
+                        Employee Email:
+                    </label>
+
+                    <input type="email" class="form-control" id="empEmail" placeholder="Enter Employee Email" required>
+
+                </div>
+
+                <button type="submit" class="btn btn-primary" id="saveBtn">
+                    Save
+                </button>
+
+                <button type="button" class="btn btn-default" id="resetBtn">
+                    Reset
+                </button>
+
+            </form>
+
+            <p id="message" role="status"></p>
+
+        </div>
+
+    </div>
+
+    <script>
+        "use strict";
+
+        // ========================================
+        // 1. JSONPOWERDB CONFIGURATION
+        // ========================================
+
+        // Replace with your NEW connection token.
+        var connToken = "Your_Connection_Token_Here"; // Replace with your actual connection token
+
+        // Original tutorial database and relation.
+        var dbName = "EMP-DB";
+        var relName = "EMP-REL";
+
+        // JsonPowerDB API.
+        var jpdbBaseURL = "https://api.login2explore.com:5577";
+        var jpdbIML = "/api/iml";
+
+        // ========================================
+        // 2. VALIDATE AND GET FORM DATA
+        // ========================================
+
+        function validateAndGetFormData() {
+
+            var empId = $("#empId").val().trim();
+            var empName = $("#empName").val().trim();
+            var empEmail = $("#empEmail").val().trim();
+
+            if (empId === "") {
+
+                alert("Employee ID is required.");
+
+                $("#empId").focus();
+
+                return "";
+            }
+
+            if (empName === "") {
+
+                alert("Employee Name is required.");
+
+                $("#empName").focus();
+
+                return "";
+            }
+
+            if (empEmail === "") {
+
+                alert("Employee Email is required.");
+
+                $("#empEmail").focus();
+
+                return "";
+            }
+
+            var jsonStrObj = {
+
+                empId: empId,
+
+                empName: empName,
+
+                empEmail: empEmail
+
+            };
+
+            return JSON.stringify(jsonStrObj);
+        }
+
+        // ========================================
+        // 3. RESET FORM
+        // ========================================
+
+        function resetForm() {
+
+            $("#empId").val("");
+
+            $("#empName").val("");
+
+            $("#empEmail").val("");
+
+            $("#empId").focus();
+        }
+
+        // ========================================
+        // 4. SAVE EMPLOYEE
+        // ========================================
+
+        function saveEmployee() {
+
+            var jsonStr = validateAndGetFormData();
+
+            if (jsonStr === "") {
+                return false;
+            }
+
+            if (connToken === "PASTE_YOUR_CONNECTION_TOKEN_HERE") {
+
+                alert("Please add your JsonPowerDB connection token.");
+
+                return false;
+            }
+
+            if (
+                typeof createPUTRequest !== "function" ||
+                typeof executeCommandAtGivenBaseUrl !== "function"
+            ) {
+
+                alert(
+                    "JsonPowerDB library is not loaded.\n" +
+                    "Check your internet connection and script URL."
+                );
+
+                return false;
+            }
+
+            // Create PUT request using official library.
+            var putReqStr = createPUTRequest(
+                connToken,
+                jsonStr,
+                dbName,
+                relName
+            );
+
+            // FIRST ALERT:
+            // Show the complete PUT request.
+            alert(putReqStr);
+
+            $("#saveBtn").prop("disabled", true);
+            $("#message").text("Saving employee...");
+            $("#message").css("color", "#2563eb");
+
+            var resultObj;
+
+            try {
+
+                // Original tutorial uses synchronous AJAX.
+                // This is retained only to match the tutorial.
+                jQuery.ajaxSetup({ async: false });
+
+                resultObj = executeCommandAtGivenBaseUrl(
+                    putReqStr,
+                    jpdbBaseURL,
+                    jpdbIML
+                );
+
+            } catch (error) {
+
+                console.error("JsonPowerDB error:", error);
+
+                alert(
+                    "Unable to connect to JsonPowerDB.\n" +
+                    error.message
+                );
+
+                $("#message").text(
+                    "Database connection failed."
+                );
+
+                $("#message").css("color", "red");
+
+                return false;
+
+            } finally {
+
+                jQuery.ajaxSetup({ async: true });
+
+                $("#saveBtn").prop("disabled", false);
+            }
+
+            // SECOND ALERT:
+            // Show the actual database response.
+            alert(JSON.stringify(resultObj));
+
+            if (
+                resultObj &&
+                Number(resultObj.status) === 200
+            ) {
+
+                resetForm();
+
+                $("#message").text(
+                    "Employee saved successfully!"
+                );
+
+                $("#message").css("color", "green");
+
+            } else {
+
+                var errorMessage = resultObj &&
+                    resultObj.message
+                    ? resultObj.message
+                    : "No successful database response received.";
+
+                $("#message").text(
+                    "Save failed: " + errorMessage
+                );
+
+                $("#message").css("color", "red");
+            }
+
+            return false;
+        }
+
+        // ========================================
+        // 5. INITIALIZE FORM
+        // ========================================
+
+        $(document).ready(function () {
+
+            $("#empId").focus();
+
+            $("#employeeForm").on("submit", function (event) {
+
+                event.preventDefault();
+
+                saveEmployee();
+            });
+
+            $("#resetBtn").on("click", function () {
+
+                resetForm();
+
+                $("#message").text("");
+            });
+
+        });
+
+    </script>
+
+</body>
+
+</html>

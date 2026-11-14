@@ -1,0 +1,302 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Employee Form - JsonPowerDB</title>
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+<style>
+body { background:#f3f6fb; padding:35px 12px; }
+.panel-form { max-width:650px; margin:auto; padding:30px;
+  background:white; border-radius:10px;
+  box-shadow:0 4px 18px #0001; }
+h2 { text-align:center; margin-bottom:25px; }
+.form-group { margin-bottom:16px; }
+.actions { display:flex; gap:10px; }
+#status { margin-top:20px; font-weight:bold; overflow-wrap:anywhere; }
+</style>
+</head>
+<body>
+<div class="panel-form">
+  <h2>Employee Registration Form</h2>
+  <form id="employeeForm">
+    <div class="form-group">
+      <label for="id">Employee ID</label>
+      <input class="form-control" id="id" required>
+    </div>
+    <div class="form-group">
+      <label for="name">Employee Name</label>
+      <input class="form-control" id="name" disabled required>
+    </div>
+    <div class="form-group">
+      <label for="salary">Salary</label>
+      <input type="number" min="0" step="0.01"
+             class="form-control" id="salary" disabled required>
+    </div>
+    <div class="form-group">
+      <label for="hra">HRA</label>
+      <input type="number" min="0" step="0.01"
+             class="form-control" id="hra" disabled required>
+    </div>
+    <div class="form-group">
+      <label for="da">DA</label>
+      <input type="number" min="0" step="0.01"
+             class="form-control" id="da" disabled required>
+    </div>
+    <div class="form-group">
+      <label for="deduction">Deduction</label>
+      <input type="number" min="0" step="0.01"
+             class="form-control" id="deduction" disabled required>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn btn-success"
+              id="saveBtn" disabled>Save</button>
+      <button type="button" class="btn btn-primary"
+              id="changeBtn" disabled>Change</button>
+      <button type="button" class="btn btn-default"
+              id="resetBtn" disabled>Reset</button>
+    </div>
+  </form>
+  <p id="status" role="status" aria-live="polite"></p>
+</div>
+
+<script>
+"use strict";
+
+// CONFIGURATION: replace token before testing.
+const TOKEN = "90933404|-31949151169143908|90904430";
+const DB = "EMP-DB";
+const REL = "EMP-REL";
+const BASE_URL = "https://api.login2explore.com:5577";
+
+const fieldIds = [
+  "name", "salary", "hra", "da", "deduction"
+];
+
+const $ = id => document.getElementById(id);
+let recordNo = null;
+let mode = "idle";
+let lookupVersion = 0;
+
+function message(text, color = "#333") {
+  $("status").textContent = text;
+  $("status").style.color = color;
+}
+
+function enableFields(enabled) {
+  fieldIds.forEach(id => $(id).disabled = !enabled);
+}
+
+function resetForm() {
+  lookupVersion++;
+  $("employeeForm").reset();
+  $("id").disabled = false;
+  enableFields(false);
+  $("saveBtn").disabled = true;
+  $("changeBtn").disabled = true;
+  $("resetBtn").disabled = true;
+  recordNo = null;
+  mode = "idle";
+  message("");
+  $("id").focus();
+}
+
+function setMode(nextMode) {
+  mode = nextMode;
+  $("id").disabled = true;
+  enableFields(true);
+  $("saveBtn").disabled = nextMode !== "new";
+  $("changeBtn").disabled = nextMode !== "existing";
+  $("resetBtn").disabled = false;
+  $("name").focus();
+}
+
+async function jpdb(cmd, endpoint, payload) {
+  const request = {
+    token: TOKEN,
+    dbName: DB,
+    rel: REL,
+    cmd: cmd,
+    ...payload
+  };
+
+  // A browser may require the server to allow CORS.
+  const response = await fetch(BASE_URL + endpoint, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" },
+    body: JSON.stringify(request)
+  });
+
+  const text = await response.text();
+  let result = JSON.parse(text);
+
+  if (typeof result === "string") {
+    result = JSON.parse(result);
+  }
+
+  return result;
+}
+
+function isNotFound(result) {
+  const text = String(result.message || "").toLowerCase();
+  return Number(result.status) === 400 &&
+    (/not found|does not exist|no record|no data|not exist/.test(text));
+}
+
+async function checkEmployee() {
+  const id = $("id").value.trim();
+  if (!id || mode !== "idle") return;
+
+  if (TOKEN === "PASTE_YOUR_CONNECTION_TOKEN_HERE") {
+    message("Configure your JsonPowerDB token first.", "red");
+    return;
+  }
+
+  const version = ++lookupVersion;
+  $("id").disabled = true;
+  message("Checking Employee ID...", "#2563eb");
+
+  try {
+    const result = await jpdb("GET_BY_KEY", "/api/irl", {
+      jsonStr: { id: id }
+    });
+
+    if (version !== lookupVersion) return;
+
+    if (Number(result.status) === 200) {
+      let data = result.data;
+      if (typeof data === "string") data = JSON.parse(data);
+
+      if (!data || !data.record || data.rec_no == null) {
+        throw new Error("Invalid GET_BY_KEY response.");
+      }
+
+      recordNo = data.rec_no;
+      fieldIds.forEach(key => {
+        $(key).value = data.record[key] ?? "";
+      });
+
+      setMode("existing");
+      message("Employee found. You can change the details.", "green");
+
+    } else if (isNotFound(result)) {
+      setMode("new");
+      message("New Employee ID. Enter details and Save.", "#2563eb");
+
+    } else {
+      throw new Error(result.message || "Lookup failed.");
+    }
+
+  } catch (error) {
+    if (version !== lookupVersion) return;
+    $("id").disabled = false;
+    message("Lookup failed: " + error.message, "red");
+    $("id").focus();
+  }
+}
+
+function employeeData() {
+  const id = $("id").value.trim();
+  const name = $("name").value.trim();
+  const values = {};
+
+  if (!id || !name) {
+    alert("All fields are required.");
+    return null;
+  }
+
+  for (const key of ["salary","hra","da","deduction"]) {
+    const raw = $(key).value.trim();
+    if (raw === "" || !Number.isFinite(Number(raw)) ||
+        Number(raw) < 0) {
+      alert("Enter a valid non-negative value for " + key);
+      $(key).focus();
+      return null;
+    }
+    values[key] = Number(raw);
+  }
+
+  return { id, name, ...values };
+}
+
+async function saveEmployee() {
+  if (mode !== "new") return;
+  const data = employeeData();
+  if (!data) return;
+
+  $("saveBtn").disabled = true;
+  $("resetBtn").disabled = true;
+  message("Saving employee...", "#2563eb");
+
+  try {
+    const result = await jpdb("PUT", "/api/iml", {
+      jsonStr: data
+    });
+
+    if (Number(result.status) !== 200) {
+      throw new Error(result.message || "Insert failed.");
+    }
+
+    alert("Employee saved successfully!");
+    resetForm();
+
+  } catch (error) {
+    message("Save failed: " + error.message, "red");
+    $("saveBtn").disabled = false;
+    $("resetBtn").disabled = false;
+  }
+}
+
+async function changeEmployee() {
+  if (mode !== "existing" || recordNo == null) return;
+  const data = employeeData();
+  if (!data) return;
+
+  $("changeBtn").disabled = true;
+  $("resetBtn").disabled = true;
+  message("Updating employee...", "#2563eb");
+
+  try {
+    const updates = { ...data };
+    delete updates.id;
+
+    const result = await jpdb("UPDATE", "/api/iml", {
+      jsonStr: { [recordNo]: updates }
+    });
+
+    if (Number(result.status) !== 200) {
+      throw new Error(result.message || "Update failed.");
+    }
+
+    alert("Employee updated successfully!");
+    resetForm();
+
+  } catch (error) {
+    message("Update failed: " + error.message, "red");
+    $("changeBtn").disabled = false;
+    $("resetBtn").disabled = false;
+  }
+}
+
+// Lookup after entering the primary key.
+$("id").addEventListener("blur", checkEmployee);
+$("id").addEventListener("keydown", event => {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    $("id").blur();
+  }
+});
+
+$("saveBtn").addEventListener("click", saveEmployee);
+$("changeBtn").addEventListener("click", changeEmployee);
+$("resetBtn").addEventListener("click", resetForm);
+
+$("employeeForm").addEventListener("submit", event => {
+  event.preventDefault();
+});
+
+resetForm();
+</script>
+</body>
+</html>

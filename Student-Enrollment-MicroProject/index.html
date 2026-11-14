@@ -1,0 +1,109 @@
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  min-height: 100vh;
+  background: #f1f5fb;
+  font-family: Arial, Helvetica, sans-serif;
+  color: #253047;
+}
+
+.app-card {
+  max-width: 850px;
+  margin: 0 auto;
+  background: white;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.09);
+}
+
+.app-header {
+  padding: 30px;
+  background: linear-gradient(120deg, #153c7a, #2764ba);
+  color: white;
+}
+
+.app-header h1 {
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.app-header p {
+  opacity: 0.9;
+}
+
+.app-content {
+  padding: 30px;
+}
+
+.form-label {
+  font-weight: 600;
+}
+
+.form-control {
+  padding: 11px 13px;
+  border-radius: 8px;
+}
+
+.form-control:focus {
+  border-color: #2764ba;
+  box-shadow: 0 0 0 3px rgba(39, 100, 186, 0.13);
+}
+
+.action-buttons {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.action-buttons .btn {
+  min-width: 110px;
+  padding: 10px 20px;
+  font-weight: 600;
+}
+
+.status-message {
+  min-height: 28px;
+  margin-top: 18px;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+#responseBox {
+  margin-top: 12px;
+  padding: 15px;
+  background: #f5f7fa;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 12px;
+  max-height: 260px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+@media (max-width: 600px) {
+  .app-content {
+    padding: 20px;
+  }
+
+  .app-header {
+    padding: 24px 20px;
+  }
+
+  .app-header h1 {
+    font-size: 22px;
+  }
+
+  .action-buttons .btn {
+    flex: 1 1 40%;
+  }
+}
